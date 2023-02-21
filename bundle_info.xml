@@ -1,0 +1,43 @@
+<BundleInfo name="ChimeraX-OpenCommands" 
+            customInit="true"
+            minSessionVersion="3"
+            maxSessionVersion="3"
+            package="OpenCommands"
+            purePython="true"
+            version="0.1">
+            
+            <Author>Tony Schaefer</Author>
+            <Email>tony.schaefer.chem@gmail.com</Email>
+			<URL>test.com</URL>
+            <License>license.txt</License>
+            <Synopsis>Run commands after opening files</Synopsis>
+            <Description>
+				Run commands after opening files
+            </Description>
+            
+            <Dependencies>
+                <Dependency name="ChimeraX-Core" version="&gt;=1.5, &lt;=1.6"/>
+            </Dependencies>
+
+			<!--
+			# TODO - start after settings?
+            <Initializations>
+                <InitAfter type="custom" bundle="ChimeraX-MouseModes"/>
+            </Initializations>
+			-->
+
+            <Categories>
+                <Category name="Input/Output"/>
+            </Categories>
+
+            <Classifiers>
+                <PythonClassifier>Development Status :: 4 - Beta</PythonClassifier>
+                <PythonClassifier>Framework :: ChimeraX</PythonClassifier>
+                <PythonClassifier>Intended Audience :: Science/Research</PythonClassifier>
+                <PythonClassifier>Natural Language :: English</PythonClassifier>
+                <PythonClassifier>Programming Language :: Python :: 3</PythonClassifier>
+                <PythonClassifier>Topic :: Scientific/Engineering :: Chemistry</PythonClassifier>
+                <PythonClassifier>Topic :: Scientific/Engineering :: Visualization</PythonClassifier>
+			</Classifiers>
+
+</BundleInfo>
