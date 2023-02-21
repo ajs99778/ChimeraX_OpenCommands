@@ -40,6 +40,9 @@ class _cmd_widget(QWidget):
         self._table.setHorizontalHeaderLabels(
             ["file type", "RegEx", "commands", ""]
         )
+        self._table.cellClicked.connect(
+            self._table_clicked,
+        )
         self._layout.addRow(self._table)
         
         button = QPushButton("add new condition")
@@ -47,6 +50,10 @@ class _cmd_widget(QWidget):
         self._layout.addRow(button)
         
         self._available_formats = sorted(available_formats, key=lambda x: x.name)
+
+    def _table_clicked(self, row, col):
+        if col == 3:
+            self._table.removeRow(row)
 
     def addRow(self):
         rows = self._table.rowCount()
