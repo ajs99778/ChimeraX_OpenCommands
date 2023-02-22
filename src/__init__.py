@@ -30,10 +30,10 @@ class _OpenCommands_API(BundleAPI):
     @staticmethod
     def run_commands(trigger_name, models):
         for model in models:
-            settings = model.session.open_command_settings.settings
-            if not model.session:
-                continue
             try:
+                if not model.session:
+                    continue
+                settings = model.session.open_command_settings.settings
                 file_format = model.opened_data_format
                 if file_format is None:
                     continue
