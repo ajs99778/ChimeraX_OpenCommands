@@ -11,6 +11,7 @@ from Qt.QtWidgets import (
     QTableWidgetItem,
     QStyle,
     QPushButton,
+    QHeaderView,
 )
 
 from chimerax.ui.options import Option
@@ -38,11 +39,17 @@ class _cmd_widget(QWidget):
         self._table = QTableWidget()
         self._table.setColumnCount(4)
         self._table.setHorizontalHeaderLabels(
-            ["file type", "RegEx", "commands", ""]
+            ["file type", "name RegEx", "commands", "remove"]
         )
         self._table.cellClicked.connect(
             self._table_clicked,
         )
+        self._table.horizontalHeader().setStretchLastSection(False)
+        self._table.resizeColumnToContents(3)
+        self._table.horizontalHeader().setSectionResizeMode(3, QHeaderView.Fixed)
+        w = int(0.75 * self.width() - self._table.columnWidth(3)) / 3
+        for i in range(0, 3):
+            self._table.setColumnWidth(i, w)
         self._layout.addRow(self._table)
         
         button = QPushButton("add new condition")
@@ -58,20 +65,22 @@ class _cmd_widget(QWidget):
     def addRow(self):
         rows = self._table.rowCount()
         self._table.insertRow(rows)
-        print("adding row", rows)
         
         combobox = QComboBox()
-        formats = [fmt.name for fmt in self._available_formats]
+        formats = ["%s (%s)" % (fmt.name, ",".join("*%s" % suffix for suffix in fmt.suffixes)) for fmt in self._available_formats]
         combobox.addItems(["Any", *formats])
+        combobox.setItemData(0, "Any")
+        for i, fmt in enumerate(self._available_formats):
+            combobox.setItemData(i + 1, fmt.name, role=Qt.UserRole)
         self._table.setCellWidget(rows, 0, combobox)
         
         regex = QLineEdit()
         regex.setPlaceholderText("optional")
         self._table.setCellWidget(rows, 1, regex)
         
-        item = QTableWidgetItem()
-        item.setFlags(item.flags() | Qt.ItemIsEditable)
-        self._table.setItem(rows, 2, item)
+        item = QLineEdit()
+        item.setPlaceholderText("click to edit commands")
+        self._table.setCellWidget(rows, 2, item)
         
         widget_that_lets_me_horizontally_align_an_icon = QWidget()
         widget_layout = QHBoxLayout(widget_that_lets_me_horizontally_align_an_icon)
@@ -100,9 +109,9 @@ class OpenCommandOption(Option):
     def get_value(self):
         data = list()
         for row in range(0, self.widget._table.rowCount()):
-            file_type = self.widget._table.cellWidget(row, 0).currentText()
+            file_type = self.widget._table.cellWidget(row, 0).currentData(role=Qt.UserRole)
             regex = self.widget._table.cellWidget(row, 1).text()
-            commands = self.widget._table.item(row, 2).text()
+            commands = self.widget._table.cellWidget(row, 2).text()
             data.append(
                 [file_type, regex, commands]
             )
@@ -114,7 +123,7 @@ class OpenCommandOption(Option):
         for row, (file_type, regex, commands) in enumerate(value):
             self.widget.addRow()
             file_type_option = self.widget._table.cellWidget(row, 0)
-            ndx = file_type_option.findText(file_type, flags=Qt.MatchExactly)
+            ndx = file_type_option.findData(file_type, role=Qt.UserRole, flags=Qt.MatchExactly)
             if ndx >= 0:
                 file_type_option.setCurrentIndex(ndx)
             else:
@@ -123,7 +132,7 @@ class OpenCommandOption(Option):
             regex_option = self.widget._table.cellWidget(row, 1)
             regex_option.setText(regex)
             
-            command_option = self.widget._table.item(row, 2)
+            command_option = self.widget._table.cellWidget(row, 2)
             command_option.setText(commands)
     
     value = property(get_value, set_value)

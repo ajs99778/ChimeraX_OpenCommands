@@ -39,10 +39,7 @@ class _OpenCommands_API(BundleAPI):
                     continue
                 format_type = file_format.name
                 for (format_name, name_regex, format_commands) in settings.DATA:
-                    print(format_name, name_regex, format_commands)
-                    if model.filename and name_regex.strip() and not (
-                        re.search(name_regex.strip(), model.filename)
-                    ):
+                    if name_regex.strip() and not re.search(name_regex.strip(), model.name):
                         continue
                     if format_name != "Any" and format_name != format_type:
                         continue
