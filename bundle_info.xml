@@ -22,7 +22,7 @@
 			<!--
 			# TODO - start after settings?
             <Initializations>
-                <InitAfter type="custom" bundle="ChimeraX-MouseModes"/>
+                <InitAfter type="custom" bundle=""/>
             </Initializations>
 			-->
 
@@ -38,6 +38,7 @@
                 <PythonClassifier>Programming Language :: Python :: 3</PythonClassifier>
                 <PythonClassifier>Topic :: Scientific/Engineering :: Chemistry</PythonClassifier>
                 <PythonClassifier>Topic :: Scientific/Engineering :: Visualization</PythonClassifier>
+                <PythonClassifier>License :: OSI Approved :: Apache Software License</PythonClassifier>
 			</Classifiers>
 
 </BundleInfo>
