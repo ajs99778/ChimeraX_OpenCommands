@@ -37,8 +37,7 @@ class _cmd_widget(QWidget):
             available_formats = list()
         
         self._layout = QFormLayout(self)
-        self._layout.addRow(QLabel("run commands or Python code when opening specific file types"))
-        self._layout.addRow(QLabel("#X will be replaced with the model's specifier (commands)"))
+        self._layout.addRow(QLabel("#X will be replaced with the model's specifier for commands"))
         self._layout.addRow(QLabel("for Python code, use 'model' for the model object"))
 
         self._table = QTableWidget()
@@ -176,7 +175,7 @@ def register_settings_options(session):
             setattr(opt.settings, setting, val)
         
         session.ui.main_window.add_settings_option(
-            "Open Models",
+            "Open Commands",
             OpenCommandOption(
                 "", settings.DATA, _opt_cb,
                 available_formats=session.open_command.open_data_formats,
