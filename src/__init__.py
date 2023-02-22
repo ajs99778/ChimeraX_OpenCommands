@@ -1,6 +1,8 @@
 import re
+from io import StringIO
 
 from chimerax.core.commands import run
+from chimerax.core.scripting import open_python_script
 from chimerax.core.toolshed import BundleAPI
 from chimerax.core.models import ADD_MODELS
 
@@ -38,13 +40,29 @@ class _OpenCommands_API(BundleAPI):
                 if file_format is None:
                     continue
                 format_type = file_format.name
-                for (format_name, name_regex, format_commands) in settings.DATA:
+                for (format_name, name_regex, cmd_type, format_commands) in settings.DATA:
+                    # go through each set of conditions and run the command/code
+                    # if it applies to this model
                     if name_regex.strip() and not re.search(name_regex.strip(), model.name):
                         continue
+                    
                     if format_name != "Any" and format_name != format_type:
                         continue
-                    for cmd in format_commands.splitlines():
-                        run(model.session, cmd.replace("${i}", model.atomspec))
+                    
+                    if cmd_type == "command":
+                        for cmd in format_commands.splitlines():
+                            run(model.session, cmd.replace("#X", model.atomspec))
+                    
+                    elif cmd_type == "python":
+                        try:
+                            exec(format_commands, {"session": model.session, "model": model})
+                        except Exception as e:
+                            error_msg = "error while executing python open code for file type %s" % format_name
+                            if name_regex.strip():
+                                error_msg += " with name matching %s" % name_regex
+                            error_msg += ":\n"
+                            error_msg += str(e)
+                            model.session.logger.error(error_msg)
             
             except AttributeError:
                 continue

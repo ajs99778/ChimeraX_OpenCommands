@@ -8,7 +8,7 @@
             
             <Author>Tony Schaefer</Author>
             <Email>tony.schaefer.chem@gmail.com</Email>
-			<URL>test.com</URL>
+			<URL>https://github.com/ajs99778/ChimeraX_OpenCommands</URL>
             <License>license.txt</License>
             <Synopsis>Run commands after opening files</Synopsis>
             <Description>

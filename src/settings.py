@@ -1,24 +1,28 @@
+from pathlib import Path
+
 from Qt.QtCore import Qt
-from Qt.QtGui import QIcon
+from Qt.QtGui import QIcon, QPixmap
 from Qt.QtWidgets import (
     QWidget,
     QLabel,
     QHBoxLayout,
     QFormLayout,
     QLineEdit,
+    QPlainTextEdit,
     QComboBox,
     QTableWidget,
     QTableWidgetItem,
     QStyle,
     QPushButton,
     QHeaderView,
+    QApplication,
 )
 
+from chimerax import app_dirs, app_data_dir
 from chimerax.ui.options import Option
 from chimerax.core.settings import Settings
 
 
-# 'settings' module attribute will be set by manager initialization
 class _openCommandsSettings(Settings):
     EXPLICIT_SAVE = {
         "DATA": [],
@@ -33,23 +37,23 @@ class _cmd_widget(QWidget):
             available_formats = list()
         
         self._layout = QFormLayout(self)
-        self._layout.addRow(QLabel("enter commands when opening specific file types"))
-        self._layout.addRow(QLabel("${i} will be replaced with the model's specifier"))
+        self._layout.addRow(QLabel("run commands or Python code when opening specific file types"))
+        self._layout.addRow(QLabel("#X will be replaced with the model's specifier (commands)"))
+        self._layout.addRow(QLabel("for Python code, use 'model' for the model object"))
 
         self._table = QTableWidget()
-        self._table.setColumnCount(4)
+        self._table.setColumnCount(5)
         self._table.setHorizontalHeaderLabels(
-            ["file type", "name RegEx", "commands", "remove"]
+            ["file type", "name RegEx", "type", "execute", "remove"]
         )
         self._table.cellClicked.connect(
             self._table_clicked,
         )
         self._table.horizontalHeader().setStretchLastSection(False)
-        self._table.resizeColumnToContents(3)
-        self._table.horizontalHeader().setSectionResizeMode(3, QHeaderView.Fixed)
-        w = int(0.75 * self.width() - self._table.columnWidth(3)) / 3
-        for i in range(0, 3):
-            self._table.setColumnWidth(i, w)
+        self._table.resizeColumnToContents(2)
+        self._table.resizeColumnToContents(4)
+        self._table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Fixed)
+        self._table.horizontalHeader().setSectionResizeMode(4, QHeaderView.Fixed)
         self._layout.addRow(self._table)
         
         button = QPushButton("add new condition")
@@ -59,7 +63,7 @@ class _cmd_widget(QWidget):
         self._available_formats = sorted(available_formats, key=lambda x: x.name)
 
     def _table_clicked(self, row, col):
-        if col == 3:
+        if col == 4:
             self._table.removeRow(row)
 
     def addRow(self):
@@ -77,11 +81,29 @@ class _cmd_widget(QWidget):
         regex = QLineEdit()
         regex.setPlaceholderText("optional")
         self._table.setCellWidget(rows, 1, regex)
+
+        cmd_type = QComboBox()
+        icon_path = Path(app_data_dir, "%s-icon512.png" % app_dirs.appname)
+        if icon_path.exists():
+            cmd_icon = QIcon(str(icon_path))
+            cmd_type.addItem(cmd_icon, "")
+        else:
+            cmd_type.addItem("command")
+        cmd_type.setItemData(0, "command", role=Qt.UserRole)
         
-        item = QLineEdit()
-        item.setPlaceholderText("click to edit commands")
-        self._table.setCellWidget(rows, 2, item)
+        icon_path = Path(app_data_dir, "jupyter", "kernels", "python3", "logo-64x64.png")
+        if icon_path.exists():
+            python_icon = QIcon(str(icon_path))
+            cmd_type.addItem(python_icon, "")
+        else:
+            cmd_type.addItem("python")
+        cmd_type.setItemData(1, "python", role=Qt.UserRole)
+        self._table.setCellWidget(rows, 2, cmd_type)
         
+        item = QPlainTextEdit()
+        item.setPlaceholderText("click to edit commands/code")
+        self._table.setCellWidget(rows, 3, item)
+
         widget_that_lets_me_horizontally_align_an_icon = QWidget()
         widget_layout = QHBoxLayout(widget_that_lets_me_horizontally_align_an_icon)
         section_remove = QLabel()
@@ -94,7 +116,7 @@ class _cmd_widget(QWidget):
         widget_layout.addWidget(section_remove, 0, Qt.AlignHCenter)
         widget_layout.setContentsMargins(0, 0, 0, 0)
         self._table.setCellWidget(
-            rows, 3, widget_that_lets_me_horizontally_align_an_icon
+            rows, 4, widget_that_lets_me_horizontally_align_an_icon
         )
 
 
@@ -111,16 +133,17 @@ class OpenCommandOption(Option):
         for row in range(0, self.widget._table.rowCount()):
             file_type = self.widget._table.cellWidget(row, 0).currentData(role=Qt.UserRole)
             regex = self.widget._table.cellWidget(row, 1).text()
-            commands = self.widget._table.cellWidget(row, 2).text()
+            cmd_type = self.widget._table.cellWidget(row, 2).currentData(role=Qt.UserRole)
+            commands = self.widget._table.cellWidget(row, 3).toPlainText()
             data.append(
-                [file_type, regex, commands]
+                [file_type, regex, cmd_type, commands]
             )
         
         return data
     
     def set_value(self, value):
         self.widget._table.setRowCount(0)
-        for row, (file_type, regex, commands) in enumerate(value):
+        for row, (file_type, regex, cmd_type, commands) in enumerate(value):
             self.widget.addRow()
             file_type_option = self.widget._table.cellWidget(row, 0)
             ndx = file_type_option.findData(file_type, role=Qt.UserRole, flags=Qt.MatchExactly)
@@ -128,12 +151,17 @@ class OpenCommandOption(Option):
                 file_type_option.setCurrentIndex(ndx)
             else:
                 file_type_option.addItem(file_type)
+                file_type_option.setCurrentIndex(file_type_option.count - 1)
             
             regex_option = self.widget._table.cellWidget(row, 1)
             regex_option.setText(regex)
             
-            command_option = self.widget._table.cellWidget(row, 2)
-            command_option.setText(commands)
+            cmd_type_option = self.widget._table.cellWidget(row, 2)
+            ndx = cmd_type_option.findData(cmd_type, role=Qt.UserRole, flags=Qt.MatchExactly)
+            cmd_type_option.setCurrentIndex(ndx)
+            
+            command_option = self.widget._table.cellWidget(row, 3)
+            command_option.setPlainText(commands)
     
     value = property(get_value, set_value)
 
