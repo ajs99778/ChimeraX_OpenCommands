@@ -1,5 +1,5 @@
 # ChimeraX_OpenCommands
- run commands when opening files
+ run commands when opening files in ChimeraX
 
 ### Description
 Do you find yourself running the same commands after you open file? Will your fingers fall off if you have to type out `coordset slider #1` two more times? Well, have we got the bundle for you! Introducing OpenCommands, the magical plugin that'll make you feel like a molecular modeling wizard! With OpenCommands, you'll waste less of your precious brainpower on tedious command line instructions.
