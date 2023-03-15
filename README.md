@@ -17,7 +17,12 @@ Or maybe you only want your commands to run when the model name matches a specif
 So what are you waiting for? Get OpenCommands today and start automating your command-line tasks like a boss!
 
 ### Installation
-OpenCommands can be installed from the <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxopencommands">toolshed</a> within ChimeraX.
+OpenCommands can be installed from the <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxopencommands">toolshed</a> within ChimeraX:
+1. Open ChimeraX
+2. on the menu, go to Tools &rarr; More Tools...
+3. Find the OpenCommands page
+4. click the install button
+5. restart ChimeraX to see the settings for OpenCommands (under Favorites/Preferences &rarr; Settings on the ChimeraX menu)
 
 
 ### Instructions
