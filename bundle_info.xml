@@ -4,7 +4,7 @@
             maxSessionVersion="3"
             package="OpenCommands"
             purePython="true"
-            version="0.1">
+            version="1.0">
             
             <Author>Tony Schaefer</Author>
             <Email>tony.schaefer.chem@gmail.com</Email>
@@ -16,7 +16,7 @@
             </Description>
             
             <Dependencies>
-                <Dependency name="ChimeraX-Core" version="&gt;=1.5, &lt;=1.6"/>
+                <Dependency name="ChimeraX-Core" version="&gt;=1.4, &lt;=1.6"/>
             </Dependencies>
 
 			<!--

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from Qt.QtCore import Qt
+from Qt.QtCore import Qt, QSize
 from Qt.QtGui import QIcon, QPixmap
 from Qt.QtWidgets import (
     QWidget,
@@ -27,6 +27,9 @@ class _openCommandsSettings(Settings):
     EXPLICIT_SAVE = {
         "DATA": [],
     }
+    AUTO_SAVE = {
+        "version": 1,
+    }
 
 
 class _cmd_widget(QWidget):
@@ -41,18 +44,20 @@ class _cmd_widget(QWidget):
         self._layout.addRow(QLabel("for Python code, use 'model' for the model object"))
 
         self._table = QTableWidget()
-        self._table.setColumnCount(5)
+        self._table.setColumnCount(6)
         self._table.setHorizontalHeaderLabels(
-            ["file type", "name RegEx", "type", "execute", "remove"]
+            ["file type", "name RegEx", "type", "apply to", "execute", "remove"]
         )
         self._table.cellClicked.connect(
             self._table_clicked,
         )
         self._table.horizontalHeader().setStretchLastSection(False)
         self._table.resizeColumnToContents(2)
-        self._table.resizeColumnToContents(4)
+        self._table.resizeColumnToContents(3)
+        self._table.resizeColumnToContents(5)
         self._table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Fixed)
-        self._table.horizontalHeader().setSectionResizeMode(4, QHeaderView.Fixed)
+        self._table.horizontalHeader().setSectionResizeMode(3, QHeaderView.Fixed)
+        self._table.horizontalHeader().setSectionResizeMode(5, QHeaderView.Fixed)
         self._layout.addRow(self._table)
         
         button = QPushButton("add new condition")
@@ -62,7 +67,7 @@ class _cmd_widget(QWidget):
         self._available_formats = sorted(available_formats, key=lambda x: x.name)
 
     def _table_clicked(self, row, col):
-        if col == 4:
+        if col == 5:
             self._table.removeRow(row)
 
     def addRow(self):
@@ -81,6 +86,8 @@ class _cmd_widget(QWidget):
         regex.setPlaceholderText("optional")
         self._table.setCellWidget(rows, 1, regex)
 
+        dim = int(1.5 * regex.fontMetrics().boundingRect("Q").height())
+
         cmd_type = QComboBox()
         icon_path = Path(app_data_dir, "%s-icon512.png" % app_dirs.appname)
         if icon_path.exists():
@@ -88,6 +95,8 @@ class _cmd_widget(QWidget):
             cmd_type.addItem(cmd_icon, "")
         else:
             cmd_type.addItem("command")
+        # icon size doesn't seem to scale with system font size
+        cmd_type.setIconSize(QSize(int(dim / 1.4), int(dim / 1.4)))
         cmd_type.setItemData(0, "command", role=Qt.UserRole)
         
         icon_path = Path(app_data_dir, "jupyter", "kernels", "python3", "logo-64x64.png")
@@ -99,14 +108,17 @@ class _cmd_widget(QWidget):
         cmd_type.setItemData(1, "python", role=Qt.UserRole)
         self._table.setCellWidget(rows, 2, cmd_type)
         
+        apply_to_type = QComboBox()
+        apply_to_type.addItems(["parent", "children", "any"])
+        self._table.setCellWidget(rows, 3, apply_to_type)
+        
         item = QPlainTextEdit()
         item.setPlaceholderText("click to edit commands/code")
-        self._table.setCellWidget(rows, 3, item)
+        self._table.setCellWidget(rows, 4, item)
 
         widget_that_lets_me_horizontally_align_an_icon = QWidget()
         widget_layout = QHBoxLayout(widget_that_lets_me_horizontally_align_an_icon)
         section_remove = QLabel()
-        dim = int(1.5 * section_remove.fontMetrics().boundingRect("Q").height())
         section_remove.setPixmap(
             QIcon(section_remove.style().standardIcon(
                 QStyle.SP_DialogDiscardButton)
@@ -115,8 +127,9 @@ class _cmd_widget(QWidget):
         widget_layout.addWidget(section_remove, 0, Qt.AlignHCenter)
         widget_layout.setContentsMargins(0, 0, 0, 0)
         self._table.setCellWidget(
-            rows, 4, widget_that_lets_me_horizontally_align_an_icon
+            rows, 5, widget_that_lets_me_horizontally_align_an_icon
         )
+        self._table.resizeColumnToContents(3)
 
 
 class OpenCommandOption(Option):
@@ -133,16 +146,17 @@ class OpenCommandOption(Option):
             file_type = self.widget._table.cellWidget(row, 0).currentData(role=Qt.UserRole)
             regex = self.widget._table.cellWidget(row, 1).text()
             cmd_type = self.widget._table.cellWidget(row, 2).currentData(role=Qt.UserRole)
-            commands = self.widget._table.cellWidget(row, 3).toPlainText()
+            model_group = self.widget._table.cellWidget(row, 3). currentText()
+            commands = self.widget._table.cellWidget(row, 4).toPlainText()
             data.append(
-                [file_type, regex, cmd_type, commands]
+                [file_type, regex, cmd_type, commands, model_group]
             )
         
         return data
     
     def set_value(self, value):
         self.widget._table.setRowCount(0)
-        for row, (file_type, regex, cmd_type, commands) in enumerate(value):
+        for row, (file_type, regex, cmd_type, commands, mdl_group) in enumerate(value):
             self.widget.addRow()
             file_type_option = self.widget._table.cellWidget(row, 0)
             ndx = file_type_option.findData(file_type, role=Qt.UserRole, flags=Qt.MatchExactly)
@@ -159,7 +173,11 @@ class OpenCommandOption(Option):
             ndx = cmd_type_option.findData(cmd_type, role=Qt.UserRole, flags=Qt.MatchExactly)
             cmd_type_option.setCurrentIndex(ndx)
             
-            command_option = self.widget._table.cellWidget(row, 3)
+            apply_to_type = self.widget._table.cellWidget(row, 3)
+            ndx = apply_to_type.findText(mdl_group, flags=Qt.MatchExactly)
+            apply_to_type.setCurrentIndex(ndx)
+            
+            command_option = self.widget._table.cellWidget(row, 4)
             command_option.setPlainText(commands)
     
     value = property(get_value, set_value)
