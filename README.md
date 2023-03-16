@@ -1,5 +1,7 @@
 # ChimeraX_OpenCommands
  run commands when opening files in ChimeraX
+ 
+<img src="https://github.com/ajs99778/ChimeraX_OpenCommands/blob/main/Screenshot%202023-03-15%20230043.png?raw=true">
 
 ### Description
 Do you find yourself running the same commands after you open file? Will your fingers fall off if you have to type out `coordset slider #1` two more times? Well, have we got the bundle for you! Introducing OpenCommands, the magical plugin that'll make you feel like a molecular modeling wizard! With OpenCommands, you'll waste less of your precious brainpower on tedious command line instructions.
@@ -27,6 +29,8 @@ OpenCommands can be installed from the <a href="https://cxtoolshed.rbvi.ucsf.edu
 
 ### Instructions
 You can set up commands in the "Open Commands" settings (Favorites/Preferences &rarr; Settings... &rarr; Open Commands). Click "add new condition" to define a new set of commands targeting a different file type or name RegEx. If both a RegEx and file type are specified, the model must match both. 
+
+If you choose to apply the commands/code to child models, the model must be a child and its file type and name must match the other criteria. If you choose to apply the parent models, the parent model name must match the RegEx, and the model's file type or one of its children's file type must match. 
 
 For ChimeraX commands, use `#X` in place of the model ID of whatever structure just opened. For Python code, the `model` and `session` objects are available. Choose between ChimeraX commands and Python with the corresponding icon in the 'type' column in the settings.
 
