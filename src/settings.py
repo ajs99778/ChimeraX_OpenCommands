@@ -164,7 +164,7 @@ class OpenCommandOption(Option):
                 file_type_option.setCurrentIndex(ndx)
             else:
                 file_type_option.addItem(file_type)
-                file_type_option.setCurrentIndex(file_type_option.count - 1)
+                file_type_option.setCurrentIndex(file_type_option.count() - 1)
             
             regex_option = self.widget._table.cellWidget(row, 1)
             regex_option.setText(regex)
