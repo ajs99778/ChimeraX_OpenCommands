@@ -1,14 +1,18 @@
 import re
 from io import StringIO
+from time import sleep
 
 from chimerax.core.commands import run
 from chimerax.core.scripting import open_python_script
 from chimerax.core.toolshed import BundleAPI
 from chimerax.core.models import ADD_MODELS
 
+from Qt.QtCore import QThread
+
 class _OpenCommands_API(BundleAPI):
 
     api_version = 1
+    threads = []
 
     @staticmethod
     def initialize(session, bundle_info):
@@ -41,6 +45,8 @@ class _OpenCommands_API(BundleAPI):
     @staticmethod
     def run_commands(trigger_name, models):
         for model in models:
+            if model.deleted:
+                continue
             try:
                 if not model.session:
                     continue
@@ -77,7 +83,14 @@ class _OpenCommands_API(BundleAPI):
                     
                     if cmd_type == "command":
                         for cmd in format_commands.splitlines():
-                            run(model.session, cmd.replace("#X", model.atomspec))
+                            thread = DelayOpenCommands()
+                            thread.finished.connect(
+                                lambda ses=model.session, c=cmd.replace("#X", model.atomspec):
+                                _OpenCommands_API._exec(ses, c)
+                            )
+                            # run(model.session, cmd.replace("#X", model.atomspec))
+                            _OpenCommands_API.threads.append(thread)
+                            thread.start()
     
                     elif cmd_type == "python":
                         try:
@@ -94,6 +107,10 @@ class _OpenCommands_API(BundleAPI):
                 continue
 
     @staticmethod
+    def _exec(session, command):
+        run(session, command)
+
+    @staticmethod
     def format_acceptable(mdl, format_name):
         mdl_format = mdl.opened_data_format
         if not mdl_format:
@@ -105,4 +122,9 @@ class _OpenCommands_API(BundleAPI):
         return False
 
 
+class DelayOpenCommands(QThread):
+    def run(self):
+        sleep(1)
+        
+        
 bundle_api = _OpenCommands_API()
