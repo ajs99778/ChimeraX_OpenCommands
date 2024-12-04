@@ -4,7 +4,7 @@
             maxSessionVersion="3"
             package="OpenCommands"
             purePython="true"
-            version="1.2.1a1">
+            version="1.3a1">
             
             <Author>Tony Schaefer</Author>
             <Email>tony.schaefer.chem@gmail.com</Email>

@@ -109,7 +109,12 @@ class _cmd_widget(QWidget):
         self._table.setCellWidget(rows, 2, cmd_type)
         
         apply_to_type = QComboBox()
-        apply_to_type.addItems(["parent", "children", "any"])
+        apply_to_type.addItems(["this", "parent", "top parent", "children", "any"])
+        apply_to_type.setTooltip("""• this - apply to a model that matches these criteria
+• parent - apply to a parent model if any of its children match these criteria
+• top parent - same as parent, but only top-level models are checked
+• children - apply to child models if the parent matches the criteria
+• any - check parent and children, and apply to both if either match"""
         self._table.setCellWidget(rows, 3, apply_to_type)
         
         item = QPlainTextEdit()

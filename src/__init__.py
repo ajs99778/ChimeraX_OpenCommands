@@ -50,58 +50,56 @@ class _OpenCommands_API(BundleAPI):
             try:
                 if not model.session:
                     continue
+                print("checking commands for", model.name, model.atomspec)
                 settings = model.session.open_command_settings.settings
                 for (format_name, name_regex, cmd_type, format_commands, model_group) in settings.DATA:
+                    print(format_name, name_regex, cmd_type, format_commands, model_group)
                     # go through each set of conditions and run the command/code
                     # if it applies to this model
-                    if model_group == "parent" and model.parent is not model.session.models.scene_root_model:
+                    if model_group == "top parent" and model.parent is not model.session.models.scene_root_model:
+                        print("model is not parent")
                         continue
 
-                    if name_regex.strip() and not re.search(name_regex.strip(), model.name):
-                        continue
+                    check_models = []
+                    if model_group in {"top parent", "parent", "any"}:
+                        for m in model.child_models():
+                            check_models.append(m)
+                    elif model_group in {"this", "any"}:
+                        check_models.append(m)
 
-                    if (
-                        model_group == "children" or
-                        model_group == "any"
-                    ) and model.parent is not model.session.models.scene_root_model:
-                        for mdl in model.child_models():
-                            if _OpenCommands_API.format_acceptable(mdl, format_name):
-                                apply_to_models.append(mdl)
-                        
-                            apply_to_models.pop(0)
-
-                    elif model_group == "parent" or model_group == "any":
-                        if not _OpenCommands_API.format_acceptable(model, format_name):
-                            for mdl in model.child_models():
-                                if _OpenCommands_API.format_acceptable(mdl, format_name):
-                                    break
-                            else:
-                                continue
-                    
-                    else:
-                        continue
-                    
-                    if cmd_type == "command":
-                        for cmd in format_commands.splitlines():
-                            thread = DelayOpenCommands()
-                            thread.finished.connect(
-                                lambda ses=model.session, c=cmd.replace("#X", model.atomspec):
-                                _OpenCommands_API._exec(ses, c)
-                            )
-                            # run(model.session, cmd.replace("#X", model.atomspec))
-                            _OpenCommands_API.threads.append(thread)
-                            thread.start()
+                    apply_to_models = set()
+                    for m in check_models:
+                        if name_regex.strip() and not re.search(name_regex.strip(), m.name):
+                            print("name regex doesn't match")
+                            continue
     
-                    elif cmd_type == "python":
-                        try:
-                            exec(format_commands, {"session": model.session, "model": model})
-                        except Exception as e:
-                            error_msg = "error while executing python open code for file type %s" % format_name
-                            if name_regex.strip():
-                                error_msg += " with name matching %s" % name_regex
-                            error_msg += ":\n"
-                            error_msg += str(e)
-                            model.session.logger.error(error_msg)
+                        if not _OpenCommands_API.format_acceptable(m, format_name):
+                            continue
+                        
+                        apply_to_models.add(m)
+
+                    for m in apply_to_models:
+                        if cmd_type == "command":
+                            for cmd in format_commands.splitlines():
+                                thread = DelayOpenCommands()
+                                thread.finished.connect(
+                                    lambda ses=m.session, c=cmd.replace("#X", m.atomspec):
+                                    _OpenCommands_API._exec(ses, c)
+                                )
+                                # run(model.session, cmd.replace("#X", model.atomspec))
+                                _OpenCommands_API.threads.append(thread)
+                                thread.start()
+        
+                        elif cmd_type == "python":
+                            try:
+                                exec(format_commands, {"session": m.session, "model": m})
+                            except Exception as e:
+                                error_msg = "error while executing python open code for file type %s" % format_name
+                                if name_regex.strip():
+                                    error_msg += " with name matching %s" % name_regex
+                                error_msg += ":\n"
+                                error_msg += str(e)
+                                m.session.logger.error(error_msg)
             
             except AttributeError as e:
                 continue
