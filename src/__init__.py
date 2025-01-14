@@ -40,6 +40,16 @@ class _OpenCommands_API(BundleAPI):
             openCommands_settings.settings.version = 2
             openCommands_settings.settings.save()
         
+        if openCommands_settings.settings.version == 2:
+            new_data = []
+            for (format_name, name_regex, cmd_type, format_commands, model_group) in settings.DATA:
+                new_data.append(
+                    [format_name, name_regex, cmd_type, format_commands, model_group.lower()]
+                )
+            openCommands_settings.settings.DATA = new_data
+            openCommands_settings.settings.version = 3
+            openCommands_settings.settings.save()
+        
         session.triggers.add_handler(ADD_MODELS, _OpenCommands_API.run_commands)
 
     @staticmethod
@@ -50,45 +60,101 @@ class _OpenCommands_API(BundleAPI):
             try:
                 if not model.session:
                     continue
-                print("checking commands for", model.name, model.atomspec)
                 settings = model.session.open_command_settings.settings
+                if settings.debug:
+                    model.session.logger.info(
+                        "debugging is enabled in your OpenCommands settings"
+                    )
+                    model.session.logger.info(
+                        "<pre>checking commands for %s %s</pre>" % (model.name, model.atomspec),
+                        is_html=True
+                    )
                 for (format_name, name_regex, cmd_type, format_commands, model_group) in settings.DATA:
-                    print(format_name, name_regex, cmd_type, format_commands, model_group)
+                    if settings.debug:
+                        model.session.logger.info(
+                            "<pre>checking option with these criteria:\n\tformat_name: %s\n\tRegEx: %s\n\ttype: %s\n\tmodel group: %s\n\tcommands:\n%s</pre>" % (format_name, name_regex, cmd_type, model_group, format_commands),
+                            is_html=True
+                        )
                     # go through each set of conditions and run the command/code
                     # if it applies to this model
                     if model_group == "top parent" and model.parent is not model.session.models.scene_root_model:
-                        print("model is not parent")
+                        if setting.debug:
+                            model.session.logger.info(
+                                "<pre>\tmodel is not top parent</pre>",
+                                is_html=True
+                            )
                         continue
 
                     check_models = []
                     if model_group in {"top parent", "parent", "any"}:
+                        if settings.debug:
+                            model.session.logger.info(
+                                "<pre>\twill check child models (%i children)</pre>" % len(model.child_models()),
+                                is_html=True
+                            )
                         for m in model.child_models():
                             check_models.append(m)
-                    elif model_group in {"this", "any"}:
-                        check_models.append(m)
+                    
+                    if model_group in {"this", "any", "children"}:
+                        check_models.append(model)
 
                     apply_to_models = set()
                     for m in check_models:
+                        if settings.debug:
+                            model.session.logger.info(
+                                "<pre>checking %s %s</pre>" % (m.name, m.atomspec),
+                                is_html=True
+                            )
+                        
                         if name_regex.strip() and not re.search(name_regex.strip(), m.name):
-                            print("name regex doesn't match")
+                            if settings.debug:
+                                model.session.logger.info(
+                                    "<pre>\tname regex %s doesn't match</pre>" % name_regex,
+                                    is_html=True
+                                )
                             continue
+                        elif settings.debug:
+                            model.session.logger.info(
+                                "<pre>\tname regex %s matches %s</pre>" % (name_regex, re.search(name_regex.strip(), m.name).group(0)),
+                                is_html=True
+                            )
     
                         if not _OpenCommands_API.format_acceptable(m, format_name):
+                            if settings.debug:
+                                model.session.logger.info(
+                                    "<pre>\tfile type is wrong or not specified (%s)</pre>" % format_name,
+                                    is_html=True
+                                )
                             continue
+                        elif settings.debug:
+                            model.session.logger.info(
+                                "<pre>\tfile type %s is acceptable</pre>" % m.opened_data_format,
+                                is_html=True
+                            )
+    
+                        if model_group in {"top parent", "parent", "any"}:
+                            apply_to_models.add(m.parent)
                         
-                        apply_to_models.add(m)
+                        if model_group in {"this", "any"}:
+                            apply_to_models.add(m)
+                        
+                        if model_group in {"any", "children"}:
+                            for child in m.child_models():
+                                apply_to_models.append(child)
 
                     for m in apply_to_models:
+                        if settings.debug:
+                            model.session.logger.info("applying command to %s %s" % (m.name, m.atomspec))
                         if cmd_type == "command":
                             for cmd in format_commands.splitlines():
-                                thread = DelayOpenCommands()
-                                thread.finished.connect(
-                                    lambda ses=m.session, c=cmd.replace("#X", m.atomspec):
-                                    _OpenCommands_API._exec(ses, c)
-                                )
-                                # run(model.session, cmd.replace("#X", model.atomspec))
-                                _OpenCommands_API.threads.append(thread)
-                                thread.start()
+                                _OpenCommands_API._exec(m.session, cmd.replace("#X", m.atomspec))
+                                # thread = DelayOpenCommands()
+                                # thread.finished.connect(
+                                #     lambda ses=m.session, c=cmd.replace("#X", m.atomspec):
+                                #     _OpenCommands_API._exec(ses, c)
+                                # )
+                                # _OpenCommands_API.threads.append(thread)
+                                # thread.start()
         
                         elif cmd_type == "python":
                             try:
@@ -123,6 +189,6 @@ class _OpenCommands_API(BundleAPI):
 class DelayOpenCommands(QThread):
     def run(self):
         sleep(1)
-        
-        
+
+
 bundle_api = _OpenCommands_API()

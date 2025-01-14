@@ -19,7 +19,7 @@ from Qt.QtWidgets import (
 )
 
 from chimerax import app_dirs, app_data_dir
-from chimerax.ui.options import Option
+from chimerax.ui.options import Option, BooleanOption
 from chimerax.core.settings import Settings
 
 
@@ -29,6 +29,7 @@ class _openCommandsSettings(Settings):
     }
     AUTO_SAVE = {
         "version": 1,
+        "debug": False
     }
 
 
@@ -110,11 +111,11 @@ class _cmd_widget(QWidget):
         
         apply_to_type = QComboBox()
         apply_to_type.addItems(["this", "parent", "top parent", "children", "any"])
-        apply_to_type.setTooltip("""• this - apply to a model that matches these criteria
+        apply_to_type.setToolTip("""• this - apply to a model that matches these criteria
 • parent - apply to a parent model if any of its children match these criteria
 • top parent - same as parent, but only top-level models are checked
 • children - apply to child models if the parent matches the criteria
-• any - check parent and children, and apply to both if either match"""
+• any - check parent and children, and apply to both if either match""")
         self._table.setCellWidget(rows, 3, apply_to_type)
         
         item = QPlainTextEdit()
@@ -204,5 +205,14 @@ def register_settings_options(session):
                 available_formats=session.open_command.open_data_formats,
                 settings=settings,
                 attr_name="DATA",
+            )
+        )
+        
+        session.ui.main_window.add_settings_option(
+            "Open Commands",
+            BooleanOption(
+                "debug", settings.debug, _opt_cb,
+                settings=settings,
+                attr_name="debug",
             )
         )
